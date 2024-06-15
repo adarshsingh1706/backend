@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 
+import { JsonWebTokenError } from "jsonwebtoken";
+import bcrypt from "bcrypt"
+
+
 const userSchema = new mongoose.Schema({
   username:{
     type:String,
@@ -16,7 +20,7 @@ const userSchema = new mongoose.Schema({
     lowercase:true,
     trim:true,
   },
-  fullname:{
+  fullName:{
     type:String,
     required:true,
     trim:true,
@@ -46,4 +50,42 @@ const userSchema = new mongoose.Schema({
 
 },{timestamps:true})
 
+userSchema.pre("save", async function(next) {
+  //encrypting only when PASSWORD is modified and not when any field is modified
+  if(!this.isModified("password")) return next();
+  //otw
+  this.password = bcrypt.hash(this.password,10)
+  next();
+})
+
+//custom method
+userSchema.methods.isPasswordCorrect = async function(password){ //cryptography so it takes time therefore async await
+  //returns bool
+  return await bcrypt.compare(password,this.password) 
+}
+
+
+userSchema.methods.generateAccessToken = function(){
+  return jwt.sign({
+    _id:this._id,
+    email:this.email,
+    username:this.username,
+    fullName:this.fullName
+  },
+  process.env.ACCESS_TOKEN_SECRET,
+  {
+    expiresIn:ACCESS_TOKEN_EXPIRY
+  }
+)
+}
+userSchema.methods.generateRefreshToken = function(){
+  return jwt.sign({
+    _id:this._id,
+  },
+  process.env.REFRESH_TOKEN_SECRET,
+  {
+    expiresIn:REFRESH_TOKEN_EXPIRY
+  }
+)
+}
 export const User = mongoose.model("User",userSchema);
