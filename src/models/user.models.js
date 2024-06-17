@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-
-import { JsonWebTokenError } from "jsonwebtoken";
+import { jwt } from "jsonwebtoken";
 import bcrypt from "bcrypt"
+const { Schema } = mongoose;
 
 
 const userSchema = new mongoose.Schema({
@@ -54,7 +54,7 @@ userSchema.pre("save", async function(next) {
   //encrypting only when PASSWORD is modified and not when any field is modified
   if(!this.isModified("password")) return next();
   //otw
-  this.password = bcrypt.hash(this.password,10)
+  this.password =await bcrypt.hash(this.password,10)
   next();
 })
 
